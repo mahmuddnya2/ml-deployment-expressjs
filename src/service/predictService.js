@@ -1,5 +1,4 @@
 import tf from "@tensorflow/tfjs-node";
-import { ErrorHandler } from "../error/errorHandler.js";
 import { Firestore } from "@google-cloud/firestore";
 
 const predictClassification = async (model, image) => {
@@ -18,15 +17,15 @@ const predictClassification = async (model, image) => {
 
 		if (confidenceScore > 50) {
 			label = "Cancer";
-			suggestion = "segera berobat ke dokter";
+			suggestion = "Segera berobat ke dokter";
 		} else {
 			label = "Not Cancer";
-			suggestion = "selamat bukan cancer";
+			suggestion = "Selamat bukan cancer";
 		}
 
 		return { label, suggestion, confidenceScore };
 	} catch (error) {
-		throw new ErrorHandler(error.statusCode, error.message);
+		console.log(error);
 	}
 };
 
