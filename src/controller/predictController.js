@@ -13,7 +13,7 @@ const predict = async (req, res, next) => {
 
 		res.status(201).json(result);
 	} catch (error) {
-		next(error);
+		console.log(error);
 	}
 };
 
