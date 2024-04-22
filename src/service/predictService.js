@@ -1,6 +1,7 @@
 import tf from "@tensorflow/tfjs-node";
 import { Firestore } from "@google-cloud/firestore";
 import crypto from "crypto";
+import { ErrorHandler } from "../error/errorHandler.js";
 
 const db = new Firestore({ databaseId: "predictions" });
 
@@ -10,48 +11,52 @@ const storeData = async (id, data) => {
 };
 
 const predictClassification = async (model, image) => {
-	const tensor = tf.node
-		.decodeJpeg(image)
-		.resizeNearestNeighbor([224, 224])
-		.expandDims()
-		.toFloat();
+	try {
+		const tensor = tf.node
+			.decodeJpeg(image)
+			.resizeNearestNeighbor([224, 224])
+			.expandDims()
+			.toFloat();
 
-	const prediction = model.predict(tensor);
-	const score = await prediction.data();
-	const confidenceScore = Math.max(...score) * 100;
+		const prediction = model.predict(tensor);
+		const score = await prediction.data();
+		const confidenceScore = Math.max(...score) * 100;
 
-	let suggestion, label;
+		let suggestion, label;
 
-	if (confidenceScore > 50) {
-		label = "Cancer";
-		suggestion = "Segera berobat ke dokter";
-	} else {
-		label = "Not Cancer";
-		suggestion = "Selamat bukan cancer";
+		if (confidenceScore > 50) {
+			label = "Cancer";
+			suggestion = "Segera berobat ke dokter";
+		} else {
+			label = "Not Cancer";
+			suggestion = "Selamat bukan cancer";
+		}
+
+		const id = crypto.randomUUID();
+		const createAt = new Date().toISOString();
+
+		const data = {
+			id,
+			result: label,
+			suggestion,
+			createAt,
+		};
+
+		await storeData(id, data);
+
+		const message =
+			confidenceScore > 50
+				? "Model is predicted successfully"
+				: "Model is predicted successfully but under threshold. Please use the correct picture";
+
+		return {
+			status: "success",
+			message,
+			data,
+		};
+	} catch (error) {
+		throw new ErrorHandler(400, "Terjadi kesalahan dalam melakukan prediksi");
 	}
-
-	const id = crypto.randomUUID();
-	const createAt = new Date().toISOString();
-
-	const data = {
-		id,
-		result: label,
-		suggestion,
-		createAt,
-	};
-
-	await storeData(id, data);
-
-	const message =
-		confidenceScore > 50
-			? "Model is predicted successfully"
-			: "Model is predicted successfully but under threshold. Please use the correct picture";
-
-	return {
-		status: "success",
-		message,
-		data,
-	};
 };
 
 const getPredict = async () => {
